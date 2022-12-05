@@ -9,12 +9,14 @@ import Word
 
 newtype WordOccurrence = WordOccurrence {line :: Int} deriving (Show)
 
-newtype WT = WT {roots :: Map Char (Word, WTNode)}
+type WTEdge = (Word, WTNode)
+
+newtype WT = WT {roots :: Map Char WTEdge}
 
 data WTNode = WTNode {
   isFinal :: Bool,
   word :: Word,
-  children :: Map Char (Word, WTNode),
+  children :: Map Char WTEdge,
   occurrences :: [WordOccurrence]
 }
 
@@ -62,7 +64,7 @@ insertAtEdge :: WTNode -- node in which we'll insert the word
                -> Word -- current prefix
                -> Word -- current suffix
                -> WordOccurrence -- occurrence to insert 
-               -> (Word, WTNode) -- the new edge and the new node after the insertion
+               -> WTEdge -- the new edge and the new node after the insertion
 insertAtEdge child edgeWord currPrefix currSuffix occurrence
   -- at <-- at
   | isEmpty remainderSuffix && isEmpty remainderEdge = (edgeWord, child {occurrences = occurrence : occurrences child, isFinal = True})
