@@ -4,13 +4,17 @@ module Map (
     get,
     newMap,
     emptyMap,
-    entries
+    entries,
+    values
 ) where
 
 newtype Map a b = Map [(a,b)]
 
 entries :: Map a b -> [(a,b)]
 entries (Map xs) = xs
+
+values :: Map a b -> [b]
+values (Map xs) = map snd xs
 
 set :: Eq a => Map a b -> a -> b -> Map a b
 set (Map []) k v = Map [(k,v)]

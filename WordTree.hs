@@ -5,7 +5,8 @@ import Word
     ( Word,
       PrefixResult(prPrefix, prRemainder2, prRemainder1),
       commonPrefix,
-      isEmpty, first, concatWord, emptyWord )
+      isEmpty, first, concatWord, emptyWord, wordToArray )
+import Data.Array (Array)
 
 newtype WordOccurrence = WordOccurrence {line :: Int} deriving (Show)
 
@@ -14,8 +15,7 @@ type WTEdge = (Word, WTNode)
 newtype WT = WT {roots :: Map Char WTEdge}
 
 data WTNode = WTNode {
-  isFinal :: Bool,
-  word :: Word,
+  word :: Array Int Char,
   children :: Map Char WTEdge,
   occurrences :: [WordOccurrence]
 }
@@ -30,23 +30,8 @@ instance Show WTNode where
 emptyTree :: WT
 emptyTree = WT emptyMap
 
-search :: WT -> Word -> [WordOccurrence]
-search (WT roots) = searchNode WTNode {children = roots, occurrences = [], isFinal = False, word = ""}
-
-searchNode :: WTNode -> Word -> [WordOccurrence]
-searchNode node wordToSearch =
-    case maybeChildToSearch of
-      Just (childEdge, child) 
-        | not $ isEmpty remainderEdge -> []
-        | isEmpty remainderWordToSearch -> occurrences child
-        | otherwise -> searchNode child remainderWordToSearch
-          where
-            prefixResult = commonPrefix childEdge wordToSearch
-            remainderEdge = prRemainder1 prefixResult
-            remainderWordToSearch = prRemainder2 prefixResult
-      Nothing -> []
-    where
-      maybeChildToSearch = get (children node) (first wordToSearch)
+isFinal :: WTNode -> Bool 
+isFinal WTNode {occurrences = occs} = null occs
 
 insert :: WT -> Word -> WordOccurrence -> WT
 insert (WT roots) word occurrence =
@@ -55,7 +40,7 @@ insert (WT roots) word occurrence =
       Just (childWord, child) -> WT $ set roots (first word) $ insertAtEdge child childWord emptyWord word occurrence
     where
       maybeExistingChild = get roots (first word)
-      wordAsNewNode = WTNode {isFinal = True, word = word, children = emptyMap, occurrences = [occurrence]}
+      wordAsNewNode = WTNode {word = wordToArray word, children = emptyMap, occurrences = [occurrence]}
 
 
 -- (assumes that the suffix shares a common prefix with the edge)
@@ -67,20 +52,18 @@ insertAtEdge :: WTNode -- node in which we'll insert the word
                -> WTEdge -- the new edge and the new node after the insertion
 insertAtEdge child edgeWord currPrefix currSuffix occurrence
   -- at <-- at
-  | isEmpty remainderSuffix && isEmpty remainderEdge = (edgeWord, child {occurrences = occurrence : occurrences child, isFinal = True})
+  | isEmpty remainderSuffix && isEmpty remainderEdge = (edgeWord, child {occurrences = occurrence : occurrences child})
   -- at <-- a: a (t)
   | isEmpty remainderSuffix = (currSuffix, WTNode {
-      isFinal = True,
-      word = wordBeingInserted,
+      word = wordToArray wordBeingInserted,
       occurrences = [occurrence],
       children = newMap (first remainderEdge) (remainderEdge, child)
     })
   -- at <-- ab: a (t, b)
   | not $ isEmpty remainderEdge = (prefix, WTNode {
-    isFinal = False,
-    word = concatWord currPrefix prefix,
+    word = wordToArray $ concatWord currPrefix prefix,
     occurrences = [],
-    children = set (newMap (first remainderSuffix) (remainderSuffix, WTNode{isFinal = True, word = wordBeingInserted, children = emptyMap, occurrences = [occurrence]}))
+    children = set (newMap (first remainderSuffix) (remainderSuffix, WTNode{word = wordToArray wordBeingInserted, children = emptyMap, occurrences = [occurrence]}))
       (first remainderEdge) (remainderEdge, child)
   })
   -- at <-- ate: at (e)
@@ -93,7 +76,7 @@ insertAtEdge child edgeWord currPrefix currSuffix occurrence
 
       -- at (lol) <-- ate: at (e, lol)
       Nothing -> (prefix, child {children = set (children child) (first remainderSuffix) (remainderSuffix, newNode) })
-        where newNode = WTNode{isFinal=True, word = wordBeingInserted, occurrences = [occurrence], children = emptyMap}
+        where newNode = WTNode{word = wordToArray wordBeingInserted, occurrences = [occurrence], children = emptyMap}
   where
     prefixResult = commonPrefix edgeWord currSuffix
     prefix = prPrefix prefixResult

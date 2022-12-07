@@ -1,11 +1,21 @@
 module Word where
 
 import Prelude hiding (Word)
+import Data.Array (Array, array)
 
 type Word = String
 
+wordToArray :: Word -> Array Int Char
+wordToArray word = array (0, size word) (map (\i -> (i, charAt word i)) [0..])
+
 emptyWord :: Word 
 emptyWord = []
+
+size :: Word -> Int 
+size = length
+
+charAt :: Word -> Int -> Char 
+charAt = (!!)
 
 first :: Word -> Char
 first = head
