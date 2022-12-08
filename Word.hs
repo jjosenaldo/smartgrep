@@ -6,7 +6,7 @@ import Data.Array (Array, array)
 type Word = String
 
 wordToArray :: Word -> Array Int Char
-wordToArray word = array (0, size word) (map (\i -> (i, charAt word i)) [0..])
+wordToArray word = array (0, size word - 1) (map (\i -> (i, charAt word i)) [0..size word - 1])
 
 emptyWord :: Word 
 emptyWord = []

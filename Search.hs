@@ -1,21 +1,25 @@
 module Search where
-import Word (Word, isEmpty, PrefixResult (..), commonPrefix, first)
+import Word (Word, isEmpty, PrefixResult (..), commonPrefix, first, charAt, size)
 import Prelude hiding (Word)
 import WordTree (WordOccurrence, WT (..), WTNode (..), WTEdge, isFinal)
 import Map (get, entries, values)
-import OrderedList (OrderedList)
-import Data.Array ( Array, bounds, (!) )
+import OrderedList (OrderedList, concatList, emptyList, insertAtList)
+import Data.Array ( Array, bounds, (!), elems )
 import Data.Array.Base (array)
+import GHC.Stack (HasCallStack)
 
-type RegArray = Array Int
-type MatrixLine = RegArray Int
-type WordChars = RegArray Char
+type MatrixLine = Array Int Int
+type WordChars = Array Int Char
 
 data SearchResult = SearchResult {
-    sr_word :: Word,
+    sr_word :: Array Int Char,
     distance :: Int,
     sr_occurrences :: [WordOccurrence]
 }
+
+instance Show SearchResult where
+  show SearchResult{sr_word=sr_word, distance=distance, sr_occurrences=sr_occurrences}= "{" ++ show distance ++ " " ++ show (elems sr_word) ++ "}"
+
 
 instance Eq SearchResult where
   res1 == res2 = distance res1 == distance res2
@@ -23,21 +27,51 @@ instance Eq SearchResult where
 instance Ord SearchResult where
   res1 <= res2 = distance res1 <= distance res2
 
--- searchNode :: WTNode    -- current node
---            -> WordChars -- current word
---            -> MatrixLine -- prev matrix line
---            -> OrderedList SearchResult -- prev results
---            -> (OrderedList SearchResult,MatrixLine) -- new results, next matrix line
--- searchNode node chars prevLine prevResults = 
+searchTree  :: WT
+            -> WordChars -- word to search
+            -> OrderedList SearchResult -- results
+searchTree (WT roots) wordChars = searchNode (WTNode (array (0,0) []) roots []) 0 wordChars (firstMatrixLine wordChars)
+
+searchNode :: WTNode  -- current node
+           -> Int -- current index
+           -> WordChars -- word to search
+           -> MatrixLine -- prev matrix line
+           -> OrderedList SearchResult -- new results
+searchNode node index wordChars prevLine =
+  concatList  childrenResults nodeResults
+  where
+    nodeResults = if not $ isFinal node
+                  then emptyList
+                  else insertAtList emptyList $ SearchResult{sr_occurrences=occurrences node,distance=distanceCurrentWord,sr_word=word node}
+    wordBounds = bounds wordChars
+    wordLength = snd wordBounds - fst wordBounds + 1
+    distanceCurrentWord = prevLine ! (wordLength - 1)
+    currentOccurrences = occurrences node
+    edges = values $ children node
+    childrenResultsList = fmap (\edge@(edgeWord, edgeNode) -> searchNode edgeNode (index + size edgeWord) wordChars (resultsFromEdge edge)) edges
+    childrenResults = foldr concatList emptyList childrenResultsList
+    resultsFromEdge (edgeWord,_) = nextMatrixLines wordChars edgeWord prevLine index
 
 -- generate the lines of a Wagner-Fischer matrix
 firstMatrixLine :: WordChars -- word to search
                 -> MatrixLine -- first line
+
 firstMatrixLine wordChars =
-    array (0, wordLength-1) (map (\i -> (i,i)) [0..])
+    array (0, wordLength-1) (map (\i -> (i,i)) [0..wordLength-1])
         where
             wordBounds = bounds wordChars
             wordLength = snd wordBounds - fst wordBounds + 1
+nextMatrixLines :: WordChars -- word to search
+               -> Word -- edge's current word
+               -> MatrixLine -- prev line
+               -> Int -- new line index
+               -> MatrixLine -- new line
+nextMatrixLines wordChars edgeChars prevLine nextLineIdx =
+  fst $ foldl f (prevLine, nextLineIdx) edgeChars
+  where
+    f (line,index) char = (newLine, index+1)
+      where newLine = nextMatrixLine wordChars char line index
+
 nextMatrixLine :: WordChars -- word to search
                -> Char -- edge's current char
                -> MatrixLine -- prev line

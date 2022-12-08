@@ -31,7 +31,7 @@ emptyTree :: WT
 emptyTree = WT emptyMap
 
 isFinal :: WTNode -> Bool 
-isFinal WTNode {occurrences = occs} = null occs
+isFinal WTNode {occurrences = occs} = not $ null occs
 
 insert :: WT -> Word -> WordOccurrence -> WT
 insert (WT roots) word occurrence =
