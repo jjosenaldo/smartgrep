@@ -1,14 +1,13 @@
 module WordTree where
 import Prelude hiding (Word)
-import Map ( Map, newMap, emptyMap, set, get, entries )
+import Map ( Map, newMap, emptyMap, set, get, entries, isMapEmpty )
 import Word
     ( Word,
       PrefixResult(prPrefix, prRemainder2, prRemainder1),
       commonPrefix,
       isEmpty, first, concatWord, emptyWord, wordToArray )
 import Data.Array (Array)
-
-newtype WordOccurrence = WordOccurrence {line :: Int} deriving (Show)
+import WordOccurrences (WordOccurrences (WordOccurrences, linesTimes), isOccurrencesEmpty, addOccurrences)
 
 type WTEdge = (Word, WTNode)
 
@@ -17,7 +16,7 @@ newtype WT = WT {roots :: Map Char WTEdge}
 data WTNode = WTNode {
   word :: Array Int Char,
   children :: Map Char WTEdge,
-  occurrences :: [WordOccurrence]
+  occurrences :: WordOccurrences
 }
 
 instance Show WT where
@@ -30,17 +29,20 @@ instance Show WTNode where
 emptyTree :: WT
 emptyTree = WT emptyMap
 
-isFinal :: WTNode -> Bool 
-isFinal WTNode {occurrences = occs} = not $ null occs
+emptyOccurrences :: WordOccurrences
+emptyOccurrences = WordOccurrences { linesTimes = emptyMap }
 
-insert :: WT -> Word -> WordOccurrence -> WT
-insert (WT roots) word occurrence =
+isFinal :: WTNode -> Bool 
+isFinal WTNode {occurrences = occs} = not $ isOccurrencesEmpty occs
+
+insert :: WT -> Word -> WordOccurrences -> WT
+insert (WT roots) word occurrences =
   case maybeExistingChild of
       Nothing -> WT $ set roots (first word) (word, wordAsNewNode)
-      Just (childWord, child) -> WT $ set roots (first word) $ insertAtEdge child childWord emptyWord word occurrence
+      Just (childWord, child) -> WT $ set roots (first word) $ insertAtEdge child childWord emptyWord word occurrences
     where
       maybeExistingChild = get roots (first word)
-      wordAsNewNode = WTNode {word = wordToArray word, children = emptyMap, occurrences = [occurrence]}
+      wordAsNewNode = WTNode {word = wordToArray word, children = emptyMap, occurrences = occurrences}
 
 
 -- (assumes that the suffix shares a common prefix with the edge)
@@ -48,35 +50,35 @@ insertAtEdge :: WTNode -- node in which we'll insert the word
                -> Word -- edge word
                -> Word -- current prefix
                -> Word -- current suffix
-               -> WordOccurrence -- occurrence to insert 
+               -> WordOccurrences -- occurrences to insert 
                -> WTEdge -- the new edge and the new node after the insertion
-insertAtEdge child edgeWord currPrefix currSuffix occurrence
+insertAtEdge child edgeWord currPrefix currSuffix newOccurrences
   -- at <-- at
-  | isEmpty remainderSuffix && isEmpty remainderEdge = (edgeWord, child {occurrences = occurrence : occurrences child})
+  | isEmpty remainderSuffix && isEmpty remainderEdge = (edgeWord, child {occurrences =  addOccurrences (occurrences child) newOccurrences})
   -- at <-- a: a (t)
   | isEmpty remainderSuffix = (currSuffix, WTNode {
       word = wordToArray wordBeingInserted,
-      occurrences = [occurrence],
+      occurrences = newOccurrences,
       children = newMap (first remainderEdge) (remainderEdge, child)
     })
   -- at <-- ab: a (t, b)
   | not $ isEmpty remainderEdge = (prefix, WTNode {
     word = wordToArray $ concatWord currPrefix prefix,
-    occurrences = [],
-    children = set (newMap (first remainderSuffix) (remainderSuffix, WTNode{word = wordToArray wordBeingInserted, children = emptyMap, occurrences = [occurrence]}))
+    occurrences = emptyOccurrences,
+    children = set (newMap (first remainderSuffix) (remainderSuffix, WTNode{word = wordToArray wordBeingInserted, children = emptyMap, occurrences = newOccurrences}))
       (first remainderEdge) (remainderEdge, child)
   })
   -- at <-- ate: at (e)
   | otherwise = case maybeGrandchildSamePrefix of
       -- at (ev, lol) <-- ate: at (e (v), lol)
       Just grandchildSamePrefix -> (prefix, child {children = set (children child) (first remainderSuffix) newNodeWithEdge})
-        where newNodeWithEdge = insertAtEdge grandchild edgeGrandchild (concatWord currPrefix prefix) remainderSuffix occurrence
+        where newNodeWithEdge = insertAtEdge grandchild edgeGrandchild (concatWord currPrefix prefix) remainderSuffix newOccurrences
               grandchild = snd grandchildSamePrefix
               edgeGrandchild = fst grandchildSamePrefix
 
       -- at (lol) <-- ate: at (e, lol)
       Nothing -> (prefix, child {children = set (children child) (first remainderSuffix) (remainderSuffix, newNode) })
-        where newNode = WTNode{word = wordToArray wordBeingInserted, occurrences = [occurrence], children = emptyMap}
+        where newNode = WTNode{word = wordToArray wordBeingInserted, occurrences = newOccurrences, children = emptyMap}
   where
     prefixResult = commonPrefix edgeWord currSuffix
     prefix = prPrefix prefixResult
@@ -84,10 +86,3 @@ insertAtEdge child edgeWord currPrefix currSuffix occurrence
     remainderEdge = prRemainder1 prefixResult
     maybeGrandchildSamePrefix = get (children child) (first remainderSuffix)
     wordBeingInserted = concatWord currPrefix currSuffix
-
-t1 = insert emptyTree "test" (WordOccurrence{line=1})
-t2 = insert t1 "toaster" (WordOccurrence{line=2})
-t3 = insert t2 "toasting" (WordOccurrence{line=3})
-t4 = insert t3 "slow" (WordOccurrence{line=4})
-t5 = insert t4 "slowly" (WordOccurrence{line=5})
-

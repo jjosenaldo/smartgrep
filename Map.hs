@@ -5,7 +5,9 @@ module Map (
     newMap,
     emptyMap,
     entries,
-    values
+    values,
+    mergeMap,
+    isMapEmpty
 ) where
 
 newtype Map a b = Map [(a,b)]
@@ -30,3 +32,18 @@ newMap k v = Map [(k,v)]
 
 emptyMap :: Map a b 
 emptyMap = Map []
+
+isMapEmpty :: Map a b -> Bool
+isMapEmpty m  = null $ entries m 
+
+mergeMap :: Eq a => (a -> b -> b -> b) -- conflict resolution
+                 -> Map a b -- first map
+                 -> Map a b -- second map
+                 -> Map a b -- result map
+mergeMap conflictSolver m1 m2  = foldr mergeAcc  m1 (entries m2)
+    where
+        mergeAcc (key,val) acc = 
+            case maybeExistingVal of
+                Nothing -> set acc key val
+                Just existingVal -> set acc key (conflictSolver key existingVal val) 
+                where maybeExistingVal = get acc key

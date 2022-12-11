@@ -1,12 +1,14 @@
 module Search where
 import Word (Word, isEmpty, PrefixResult (..), commonPrefix, first, charAt, size)
 import Prelude hiding (Word)
-import WordTree (WordOccurrence, WT (..), WTNode (..), WTEdge, isFinal)
+import WordTree (WT (..), WTNode (..), WTEdge, isFinal, emptyOccurrences)
 import Map (get, entries, values)
 import OrderedList (OrderedList, concatList, emptyList, insertAtList)
 import Data.Array ( Array, bounds, (!), elems )
 import Data.Array.Base (array)
 import GHC.Stack (HasCallStack)
+import WordOccurrences (WordOccurrences)
+import Data.Array (listArray)
 
 type MatrixLine = Array Int Int
 type WordChars = Array Int Char
@@ -14,7 +16,7 @@ type WordChars = Array Int Char
 data SearchResult = SearchResult {
     sr_word :: Array Int Char,
     distance :: Int,
-    sr_occurrences :: [WordOccurrence]
+    sr_occurrences :: WordOccurrences
 }
 
 instance Show SearchResult where
@@ -28,9 +30,10 @@ instance Ord SearchResult where
   res1 <= res2 = distance res1 <= distance res2
 
 searchTree  :: WT
-            -> WordChars -- word to search
+            -> Word -- word to search
             -> OrderedList SearchResult -- results
-searchTree (WT roots) wordChars = searchNode (WTNode (array (0,0) []) roots []) 0 wordChars (firstMatrixLine wordChars)
+searchTree (WT roots) wordToSearch = searchNode (WTNode (array (0,0) []) roots emptyOccurrences) 0 wordChars (firstMatrixLine wordChars)
+  where wordChars = listArray (0,size wordToSearch - 1) wordToSearch
 
 searchNode :: WTNode  -- current node
            -> Int -- current index

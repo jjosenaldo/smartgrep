@@ -1,12 +1,10 @@
 module Main where
-import Data.Array (listArray)
 import Search (searchTree)
-import WordTree (t5)
-import Data.Array.Base (elems)
 import OrderedList (toList)
+import TreeBuilder (buildTree)
 
 main = do
-        let wordToSearch = listArray (0,4) "testa"
-        let result =  searchTree t5 wordToSearch
-        print $ toList result
+        tree <- buildTree
+        let resultList = toList $ searchTree tree "angustia"
+        print $ take 5 resultList
         return ()
