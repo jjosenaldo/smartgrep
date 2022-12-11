@@ -7,13 +7,12 @@ import System.Environment (getArgs)
 main :: IO ()
 main = do
         args <- getArgs
-        tree <- buildTree
-        let word
-             | null args = error "You must provide a word to search, like so: \"./Main horse\""
-             | otherwise = 
+        let word =
                 case args of 
+                    [] -> error "You must provide a word to search, like so: \"./Main horse\""
                     [x] -> x
-                    _ -> error "You must provide a single word"
+                    _:_:_ -> error "You must provide a single word"
+        tree <- buildTree
         let resultList = toList $ searchTree tree word
         print $ take 5 resultList
         return ()
