@@ -1,10 +1,16 @@
 module WordOccurrences where
-import Map (Map, mergeMap, isMapEmpty)
+import Map (Map, mergeMap, isMapEmpty, entries)
 import Prelude hiding (Word)
 import Word (Word)
 
 newtype WordOccurrences = WordOccurrences {linesTimes :: Map String (Map Int Int)}
 type WordOccurrencesByWord = Map Word WordOccurrences
+
+instance Show WordOccurrences where
+    show (WordOccurrences linesTimes) = concatMap forFile (entries linesTimes)
+        where
+            forFile (file,linesMap) = concatMap forLine (entries linesMap)
+                where forLine (line, times) = file ++ ":" ++ show line ++ (if times == 1 then "" else " (" ++ show times ++ "x)") ++ "\n"
 
 isOccurrencesEmpty :: WordOccurrences -> Bool
 isOccurrencesEmpty (WordOccurrences lines) = isMapEmpty lines

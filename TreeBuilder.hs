@@ -13,7 +13,7 @@ import Data.Char (toLower, isLetter)
 buildTree :: IO WT
 buildTree = (getFiles >>= getOccurrencesFromFiles) <&> buildTreeFromOccurrences
 
-filesDir :: FilePath 
+filesDir :: FilePath
 filesDir = "files"
 
 getFiles :: IO [FilePath]
@@ -21,7 +21,7 @@ getFiles = ((getCurrentDirectory >>= (\dir -> pure $ dir ++ '/':filesDir)) >>= g
 
 buildTreeFromOccurrences :: WordOccurrencesByWord -> WT
 buildTreeFromOccurrences occurrences = foldr foldAcc emptyTree (entries occurrences)
-    where 
+    where
         foldAcc :: (Word, WordOccurrences) -> WT -> WT
         foldAcc (word, occurrences) treeAcc = insert treeAcc word occurrences
 
@@ -74,7 +74,9 @@ preproccessWord ::  String -> String
 preproccessWord = filter isLetter . map toLower
 
 foldrIndexed :: (Int -> a -> b -> b) -> b -> [a] -> b
-foldrIndexed f b xs = fst $ foldr (\x (acc, index) -> (f index x acc, index + 1)) (b, 0) xs
+foldrIndexed f b xs = fst $ foldr (\x (acc, index) -> (f index x acc, index - 1)) (b, n-1) xs
+    where 
+        n = length xs
 
 incOccurrences :: WordOccurrences -- current occurrences
               -> Int -- line number

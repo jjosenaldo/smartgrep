@@ -8,6 +8,7 @@ import Data.Array ( Array, bounds, (!), elems, listArray )
 import Data.Array.Base (array)
 import GHC.Stack (HasCallStack)
 import WordOccurrences (WordOccurrences)
+import Params (maxDistance, maxSuggestions)
 
 type MatrixLine = Array Int Int
 type WordChars = Array Int Char
@@ -19,7 +20,23 @@ data SearchResult = SearchResult {
 }
 
 instance Show SearchResult where
-  show SearchResult{sr_word=sr_word, distance=distance, sr_occurrences=sr_occurrences}= "{" ++ show distance ++ " " ++ show (elems sr_word) ++ "}"
+  show SearchResult{sr_word=sr_word, distance=distance, sr_occurrences=sr_occurrences}= "{" ++ show distance ++ " " ++ elems sr_word ++ "}"
+
+getClosestResults :: [SearchResult] -- all results
+                  -> Int -- maxium distance
+                  ->  [SearchResult] -- closest results
+getClosestResults allResults maxDistance = takeWhile (\result -> distance result <= maxDistance) allResults
+
+buildTextFromClosestResults :: [SearchResult] -> String
+buildTextFromClosestResults = buildTextFromResults . flip getClosestResults maxDistance
+
+buildTextFromResults :: [SearchResult] -> String
+buildTextFromResults results
+        | null results = "No results found"
+        | distance (head results) == 0 = show  (sr_occurrences $ head results) ++ closeResultsText (take maxSuggestions $ tail results)
+        | otherwise = closeResultsText results
+                where
+                        closeResultsText results = concatMap (\result -> elems (sr_word result) ++ "\n") results
 
 
 instance Eq SearchResult where
@@ -50,7 +67,7 @@ searchNode node index wordChars prevLine =
                   else insertAtList emptyList $ SearchResult{sr_occurrences=occurrences node,distance=distanceCurrentWord,sr_word=word node}
     wordBounds = bounds wordChars
     wordLength = snd wordBounds - fst wordBounds + 1
-    distanceCurrentWord = prevLine ! (wordLength)
+    distanceCurrentWord = prevLine ! wordLength
     currentOccurrences = occurrences node
     edges = values $ children node
     childrenResultsList = fmap (\edge@(edgeWord, edgeNode) -> searchNode edgeNode (index + size edgeWord) wordChars (resultsFromEdge edge)) edges
