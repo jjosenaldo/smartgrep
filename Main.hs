@@ -1,11 +1,12 @@
 module Main where
-import Search (searchTree)
+import Search (searchTree, SearchResult (distance))
 import OrderedList (toList)
 import TreeBuilder (buildTree)
 import System.Environment (getArgs)
 
 main :: IO ()
 main = do
+        let maxDistance = 2
         args <- getArgs
         let word =
                 case args of 
@@ -13,6 +14,6 @@ main = do
                     [x] -> x
                     _:_:_ -> error "You must provide a single word"
         tree <- buildTree
-        let resultList = toList $ searchTree tree word
-        print $ take 5 resultList
+        let allResults = toList $ searchTree tree word
+        print $ takeWhile (\result -> distance result <= maxDistance) allResults
         return ()

@@ -8,6 +8,7 @@ import System.Directory (getCurrentDirectory, getDirectoryContents)
 import Data.Functor ( (<&>) )
 import WordOccurrences (WordOccurrencesByWord, WordOccurrences (WordOccurrences, linesTimes), addOccurrencesByWord)
 import Data.List  (isPrefixOf)
+import Data.Char (toLower, isLetter)
 
 buildTree :: IO WT
 buildTree = (getFiles >>= getOccurrencesFromFiles) <&> buildTreeFromOccurrences
@@ -59,7 +60,7 @@ getOccurrencesFromLine :: String  -- line
 getOccurrencesFromLine line lineNumber file =
     foldr mapAcc emptyMap lineWords
     where
-        lineWords = words line
+        lineWords = map preproccessWord $ words line
         mapAcc :: String -> WordOccurrencesByWord -> WordOccurrencesByWord
         mapAcc word acc = set acc word newVal
             where
@@ -69,7 +70,8 @@ getOccurrencesFromLine line lineNumber file =
                         Nothing -> incOccurrences emptyOccurrences lineNumber file
                         Just occurrences -> incOccurrences occurrences lineNumber file
 
-
+preproccessWord ::  String -> String
+preproccessWord = filter isLetter . map toLower
 
 foldrIndexed :: (Int -> a -> b -> b) -> b -> [a] -> b
 foldrIndexed f b xs = fst $ foldr (\x (acc, index) -> (f index x acc, index + 1)) (b, 0) xs
