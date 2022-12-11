@@ -2,7 +2,7 @@ module Search where
 import Word (Word, isEmpty, PrefixResult (..), commonPrefix, first, charAt, size)
 import Prelude hiding (Word)
 import WordTree (WT (..), WTNode (..), WTEdge, isFinal, emptyOccurrences)
-import Map (get, entries, values)
+import Map (get, entries, values, Map)
 import OrderedList (OrderedList, concatList, emptyList, insertAtList)
 import Data.Array ( Array, bounds, (!), elems, listArray )
 import Data.Array.Base (array)
@@ -31,8 +31,11 @@ instance Ord SearchResult where
 searchTree  :: WT
             -> Word -- word to search
             -> OrderedList SearchResult -- results
-searchTree (WT roots) wordToSearch = searchNode (WTNode (array (0,0) []) roots emptyOccurrences) 0 wordChars (firstMatrixLine wordChars)
+searchTree (WT roots) wordToSearch = searchNode (rootNode roots) 0 wordChars (firstMatrixLine wordChars)
   where wordChars = listArray (0,size wordToSearch - 1) wordToSearch
+
+rootNode :: Map Char WTEdge -> WTNode
+rootNode roots = WTNode (array (0,0) []) roots emptyOccurrences
 
 searchNode :: WTNode  -- current node
            -> Int -- current index
@@ -47,7 +50,7 @@ searchNode node index wordChars prevLine =
                   else insertAtList emptyList $ SearchResult{sr_occurrences=occurrences node,distance=distanceCurrentWord,sr_word=word node}
     wordBounds = bounds wordChars
     wordLength = snd wordBounds - fst wordBounds + 1
-    distanceCurrentWord = prevLine ! (wordLength - 1)
+    distanceCurrentWord = prevLine ! (wordLength)
     currentOccurrences = occurrences node
     edges = values $ children node
     childrenResultsList = fmap (\edge@(edgeWord, edgeNode) -> searchNode edgeNode (index + size edgeWord) wordChars (resultsFromEdge edge)) edges
@@ -59,7 +62,7 @@ firstMatrixLine :: WordChars -- word to search
                 -> MatrixLine -- first line
 
 firstMatrixLine wordChars =
-    array (0, wordLength-1) (map (\i -> (i,i)) [0..wordLength-1])
+    array (0, wordLength) (map (\i -> (i,i)) [0..wordLength])
         where
             wordBounds = bounds wordChars
             wordLength = snd wordBounds - fst wordBounds + 1
@@ -80,18 +83,17 @@ nextMatrixLine :: WordChars -- word to search
                -> Int -- new line index
                -> MatrixLine -- new line
 nextMatrixLine wordChars edgeChar prevLine nextLineIdx =
-    if nextLineIdx == 0 then array (0,wordLength-1) $ map (\i -> (i, i + nextLineIdx)) [0..wordLength-1]
-    else array (0,wordLength-1) nextLine
+  array (0,wordLength) nextLine
     where
         wordBounds = bounds wordChars
         wordLength = snd wordBounds - fst wordBounds + 1
         nextLineEl i prev
             | i == 0                        = (prevLine ! 0) + 1
-            | wordChars ! i == edgeChar = prevLine ! (i-1)
+            | wordChars ! (i-1) == edgeChar = prevLine ! (i-1)
             | otherwise                     = 1 + min3 (prevLine ! (i-1))
                                                        (prevLine ! i)
                                                        prev
-        nextLine = foldl (\currArr i -> currArr ++ [(i,nextLineEl i (if i == 0 then 0 else snd $ last currArr))] ) [] [0..wordLength-1]
+        nextLine = foldl (\currArr i -> currArr ++ [(i,nextLineEl i (if i == 0 then 0 else snd $ last currArr))] ) [] [0..wordLength]
 
 
 min3 :: Ord a => a -> a -> a -> a

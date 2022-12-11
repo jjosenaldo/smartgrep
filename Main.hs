@@ -4,6 +4,7 @@ import OrderedList (toList)
 import TreeBuilder (buildTree)
 import System.Environment (getArgs)
 
+main :: IO ()
 main = do
         args <- getArgs
         tree <- buildTree
