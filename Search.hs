@@ -4,11 +4,10 @@ import Prelude hiding (Word)
 import WordTree (WT (..), WTNode (..), WTEdge, isFinal, emptyOccurrences)
 import Map (get, entries, values)
 import OrderedList (OrderedList, concatList, emptyList, insertAtList)
-import Data.Array ( Array, bounds, (!), elems )
+import Data.Array ( Array, bounds, (!), elems, listArray )
 import Data.Array.Base (array)
 import GHC.Stack (HasCallStack)
 import WordOccurrences (WordOccurrences)
-import Data.Array (listArray)
 
 type MatrixLine = Array Int Int
 type WordChars = Array Int Char
