@@ -1,0 +1,9 @@
+Usage:
+  smartgrep [-h] [-d=<arg>] [-s=<arg>] <word>
+
+Options:
+  -h --help                   Show this
+  -d, --distance <arg>        Only words whose Levenshtein Distance to <word> is less or equal than <arg> are shown as suggestions.
+                              [default: 2]
+  -s, --suggestions <arg>  The program returns at most <arg> suggestions.
+                              [default: 5]

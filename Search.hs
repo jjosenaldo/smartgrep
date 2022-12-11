@@ -8,7 +8,6 @@ import Data.Array ( Array, bounds, (!), elems, listArray )
 import Data.Array.Base (array)
 import GHC.Stack (HasCallStack)
 import WordOccurrences (WordOccurrences)
-import Params (maxDistance, maxSuggestions)
 
 type MatrixLine = Array Int Int
 type WordChars = Array Int Char
@@ -27,16 +26,19 @@ getClosestResults :: [SearchResult] -- all results
                   ->  [SearchResult] -- closest results
 getClosestResults allResults maxDistance = takeWhile (\result -> distance result <= maxDistance) allResults
 
-buildTextFromClosestResults :: [SearchResult] -> String
-buildTextFromClosestResults = buildTextFromResults . flip getClosestResults maxDistance
+buildTextFromClosestResults :: Int 
+                            -> Int 
+                            -> [SearchResult] 
+                            ->  String
+buildTextFromClosestResults maxDistance maxSuggestions = buildTextFromResults maxSuggestions . flip getClosestResults maxDistance
 
-buildTextFromResults :: [SearchResult] -> String
-buildTextFromResults results
+buildTextFromResults :: Int -> [SearchResult] -> String
+buildTextFromResults maxSuggestions results
         | null results = "No results found"
-        | distance (head results) == 0 = show  (sr_occurrences $ head results) ++ closeResultsText (take maxSuggestions $ tail results)
+        | distance (head results) == 0 = show  (sr_occurrences $ head results) ++ closeResultsText (tail results)
         | otherwise = closeResultsText results
                 where
-                        closeResultsText results = concatMap (\result -> elems (sr_word result) ++ "\n") results
+                        closeResultsText results = concatMap (\result -> elems (sr_word result) ++ "\n") (take maxSuggestions results)
 
 
 instance Eq SearchResult where
